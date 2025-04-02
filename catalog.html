@@ -82,9 +82,25 @@
 
     <!-- Load scripts in correct order -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
+    <script>
+        // Wait for Supabase to be loaded
+        window.addEventListener('load', function() {
+            if (typeof supabase === 'undefined') {
+                console.error('Supabase library not loaded');
+                return;
+            }
+            // Load our scripts after Supabase is ready
+            const supabaseScript = document.createElement('script');
+            supabaseScript.src = 'js/supabase.js';
+            supabaseScript.onload = function() {
+                const catalogScript = document.createElement('script');
+                catalogScript.src = 'js/catalog.js';
+                document.body.appendChild(catalogScript);
+            };
+            document.body.appendChild(supabaseScript);
+        });
+    </script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script src="js/catalog.js"></script>
     <script>
         // Mobile menu toggle
         document.getElementById('menuToggle').addEventListener('click', function() {
