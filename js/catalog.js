@@ -1,6 +1,6 @@
 // Initialize Razorpay
 const options = {
-    key: process.env.RAZORPAY_KEY_ID || 'rzp_test_UbdMSUbQI2Eh6B', // Use environment variable or fallback to test key
+    key: process.env.RAZORPAY_KEY_ID || 'I9JU23NF394R6HH', // Use environment variable or fallback to provided key
     amount: 0,
     currency: "INR",
     name: "MICRO Store",

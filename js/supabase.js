@@ -1,20 +1,27 @@
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+// Supabase configuration
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://iqhtwrhndoicqmqjnods.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxaHR3cmhuZG9pY3FtcWpub2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTgzNzYsImV4cCI6MjA1OTE3NDM3Nn0.bIPtfS7_PXQM5diEubhyR88AjP6iO9iOHJKYM5rlNrs';
 
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+// Initialize Supabase client
+let supabaseClient;
+try {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase client initialized successfully');
+} catch (error) {
+    console.error('Error initializing Supabase client:', error);
+}
 
 // PDF Storage Functions
 async function uploadPDF(file, metadata) {
     try {
-        if (!supabase) {
+        if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
         
         // Upload file to Supabase Storage
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
-        const { data: fileData, error: uploadError } = await supabase.storage
+        const { data: fileData, error: uploadError } = await supabaseClient.storage
             .from('pdfs')
             .upload(fileName, file);
 
@@ -28,7 +35,7 @@ async function uploadPDF(file, metadata) {
         }
 
         // Create database record
-        const { data: dbData, error: dbError } = await supabase
+        const { data: dbData, error: dbError } = await supabaseClient
             .from('pdfs')
             .insert([
                 {
@@ -60,11 +67,11 @@ async function uploadPDF(file, metadata) {
 
 async function getPDFs() {
     try {
-        if (!supabase) {
+        if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
         
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('pdfs')
             .select('*')
             .order('created_at', { ascending: false })
@@ -79,11 +86,11 @@ async function getPDFs() {
 
 async function getPDFDownloadUrl(filename) {
     try {
-        if (!supabase) {
+        if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
         
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
             .from('pdfs')
             .createSignedUrl(filename, 3600) // URL valid for 1 hour
 
@@ -97,11 +104,11 @@ async function getPDFDownloadUrl(filename) {
 
 async function recordPurchase(pdfId, paymentId) {
     try {
-        if (!supabase) {
+        if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
         
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('purchases')
             .insert([
                 {
@@ -121,11 +128,11 @@ async function recordPurchase(pdfId, paymentId) {
 
 async function verifyPurchase(pdfId) {
     try {
-        if (!supabase) {
+        if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
         
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('purchases')
             .select('*')
             .eq('pdf_id', pdfId)
