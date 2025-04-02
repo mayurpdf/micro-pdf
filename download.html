@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download PDF - PDF Store</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/loading.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo"><a href="index.html">MICRO Store</a></div>
+            <div class="menu-toggle" id="menuToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul id="navMenu">
+                <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="catalog.html"><i class="fas fa-book"></i> Catalog</a></li>
+                <li><a href="admin/login.html"><i class="fas fa-user-shield"></i> Admin Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="download-container">
+            <div id="downloadContent">
+                <div class="loading-placeholder">
+                    <div class="loading-spinner"></div>
+                    <p>Verifying your purchase...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 MICRO Store. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.getElementById('navMenu').classList.toggle('active');
+        });
+    </script>
+    <script src="js/download.js"></script>
+    <script src="js/loading.js"></script>
+</body>
+</html> 

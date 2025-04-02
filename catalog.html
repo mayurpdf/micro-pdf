@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog - MICRO Store</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo"><a href="index.html">MICRO Store</a></div>
+            <div class="menu-toggle" id="menuToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul id="navMenu">
+                <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="catalog.html" class="active"><i class="fas fa-book"></i> Catalog</a></li>
+                <li><a href="admin/login.html"><i class="fas fa-user-shield"></i> Admin Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="catalog-container">
+            <div class="catalog-header">
+                <h1>Study Materials Catalog</h1>
+                <p class="catalog-description">Browse our collection of high-quality study materials</p>
+            </div>
+
+            <div class="catalog-filters">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search study materials...">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="filter-options">
+                    <select id="yearFilter">
+                        <option value="">All Years</option>
+                        <option value="FE">First Year (FE)</option>
+                        <option value="SE">Second Year (SE)</option>
+                        <option value="TE">Third Year (TE)</option>
+                        <option value="BE">Fourth Year (BE)</option>
+                    </select>
+                    <select id="branchFilter">
+                        <option value="">All Branches</option>
+                        <option value="Computer">Computer Engineering</option>
+                        <option value="IT">Information Technology</option>
+                    </select>
+                    <select id="subjectFilter">
+                        <option value="">All Subjects</option>
+                        <option value="CC">Cloud Computing</option>
+                        <option value="DSBDA">Data Science & Big Data Analytics</option>
+                        <option value="AI">Artificial Intelligence</option>
+                        <option value="WT">Web Technology</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="catalog-grid" id="pdfGrid">
+                <!-- PDF cards will be dynamically added here -->
+            </div>
+
+            <div class="loading-placeholder" id="loadingPlaceholder">
+                <div class="spinner"></div>
+                <p>Loading study materials...</p>
+            </div>
+
+            <div class="no-results" id="noResults" style="display: none;">
+                <i class="fas fa-search"></i>
+                <h3>No Results Found</h3>
+                <p>Try adjusting your search or filters</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 MICRO Store. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.getElementById('navMenu').classList.toggle('active');
+        });
+    </script>
+    <script src="js/catalog.js"></script>
+</body>
+</html> 
