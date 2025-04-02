@@ -3,13 +3,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://iqhtwrhndoicqmqjnods.s
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxaHR3cmhuZG9pY3FtcWpub2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTgzNzYsImV4cCI6MjA1OTE3NDM3Nn0.bIPtfS7_PXQM5diEubhyR88AjP6iO9iOHJKYM5rlNrs';
 
 // Initialize Supabase client
-let supabaseClient;
-try {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase client initialized successfully');
-} catch (error) {
-    console.error('Error initializing Supabase client:', error);
-}
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // PDF Storage Functions
 async function uploadPDF(file, metadata) {
@@ -17,7 +11,7 @@ async function uploadPDF(file, metadata) {
         if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
-        
+
         // Upload file to Supabase Storage
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
@@ -26,12 +20,7 @@ async function uploadPDF(file, metadata) {
             .upload(fileName, file);
 
         if (uploadError) {
-            console.error('Storage upload error:', uploadError);
             throw uploadError;
-        }
-
-        if (!fileData) {
-            throw new Error('No file data returned from storage upload');
         }
 
         // Create database record
@@ -39,23 +28,20 @@ async function uploadPDF(file, metadata) {
             .from('pdfs')
             .insert([
                 {
+                    filename: fileName,
                     title: metadata.title,
                     description: metadata.description,
                     price: metadata.price,
-                    filename: fileName,
-                    storage_path: fileData.path
+                    category: metadata.category,
+                    year: metadata.year,
+                    branch: metadata.branch,
+                    subject: metadata.subject,
+                    created_at: new Date().toISOString()
                 }
-            ])
-            .select()
-            .single();
+            ]);
 
         if (dbError) {
-            console.error('Database insert error:', dbError);
             throw dbError;
-        }
-
-        if (!dbData) {
-            throw new Error('No data returned from database insert');
         }
 
         return { success: true, data: dbData };

@@ -66,59 +66,43 @@ async function handlePDFUpload(event) {
     
     const fileInput = document.getElementById('pdfFile');
     const titleInput = document.getElementById('pdfTitle');
-    const priceInput = document.getElementById('pdfPrice');
     const descriptionInput = document.getElementById('pdfDescription');
-    
-    const file = fileInput.files[0];
-    
-    if (!file) {
+    const priceInput = document.getElementById('pdfPrice');
+    const categoryInput = document.getElementById('pdfCategory');
+    const yearInput = document.getElementById('pdfYear');
+    const branchInput = document.getElementById('pdfBranch');
+    const subjectInput = document.getElementById('pdfSubject');
+
+    if (!fileInput.files[0]) {
         showNotification('Please select a PDF file', 'error');
         return;
     }
-    
-    if (file.type !== 'application/pdf') {
-        showNotification('Please select a valid PDF file', 'error');
-        return;
-    }
-    
-    if (!titleInput.value.trim()) {
-        showNotification('Please enter a title', 'error');
-        return;
-    }
-    
-    if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
-        showNotification('Please enter a valid price', 'error');
-        return;
-    }
-    
-    // Show loading state
-    const submitButton = event.target.querySelector('button[type="submit"]');
-    const originalText = submitButton.innerHTML;
-    submitButton.innerHTML = '<div class="loading-spinner"></div> Uploading...';
-    submitButton.disabled = true;
-    
+
+    const file = fileInput.files[0];
+    const metadata = {
+        title: titleInput.value,
+        description: descriptionInput.value,
+        price: parseFloat(priceInput.value),
+        category: categoryInput.value,
+        year: yearInput.value,
+        branch: branchInput.value,
+        subject: subjectInput.value
+    };
+
     try {
-        const metadata = {
-            title: titleInput.value.trim(),
-            price: parseFloat(priceInput.value),
-            description: descriptionInput.value.trim()
-        };
-        
         const result = await uploadPDF(file, metadata);
-        
         if (result.success) {
             showNotification('PDF uploaded successfully!', 'success');
+            // Reset form
             event.target.reset();
-            loadPDFs(); // Refresh the PDF list
+            // Refresh PDF list
+            loadPDFs();
         } else {
-            throw new Error(result.error || 'Failed to upload PDF');
+            showNotification(result.error || 'Error uploading PDF', 'error');
         }
     } catch (error) {
         console.error('Upload error:', error);
-        showNotification(error.message || 'Error uploading PDF', 'error');
-    } finally {
-        submitButton.innerHTML = originalText;
-        submitButton.disabled = false;
+        showNotification('Error uploading PDF. Please try again.', 'error');
     }
 }
 
@@ -136,15 +120,10 @@ async function loadPDFs() {
     `;
     
     try {
-        const result = await getPDFs();
-        
-        if (!result.success) {
-            throw new Error(result.error);
-        }
-        
-        const pdfs = result.data;
-        
-        if (pdfs.length === 0) {
+        const { data, error } = await getPDFs();
+        if (error) throw error;
+
+        if (data.length === 0) {
             pdfList.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-file-pdf" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
@@ -155,13 +134,13 @@ async function loadPDFs() {
             return;
         }
         
-        pdfList.innerHTML = pdfs.map(pdf => `
+        pdfList.innerHTML = data.map(pdf => `
             <div class="pdf-card">
                 <h3>${pdf.title}</h3>
                 <p>${pdf.description}</p>
                 <p>Price: ₹${pdf.price}</p>
                 <div class="pdf-actions">
-                    <button class="action-button delete-button" onclick="deletePDF(${pdf.id}, '${pdf.filename}')">Delete</button>
+                    <button class="action-button delete-button" onclick="deletePDF('${pdf.filename}')">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -177,34 +156,29 @@ async function loadPDFs() {
 }
 
 // Delete PDF
-async function deletePDF(id, filename) {
-    if (confirm('Are you sure you want to delete this PDF?')) {
-        try {
-            // Delete from storage
-            const { error: storageError } = await supabaseClient.storage
-                .from('pdfs')
-                .remove([filename]);
+async function deletePDF(filename) {
+    if (!confirm('Are you sure you want to delete this PDF?')) return;
 
-            if (storageError) {
-                throw storageError;
-            }
+    try {
+        const { error } = await supabaseClient.storage
+            .from('pdfs')
+            .remove([filename]);
 
-            // Delete from database
-            const { error: dbError } = await supabaseClient
-                .from('pdfs')
-                .delete()
-                .eq('id', id);
+        if (error) throw error;
 
-            if (dbError) {
-                throw dbError;
-            }
+        // Delete from database
+        const { error: dbError } = await supabaseClient
+            .from('pdfs')
+            .delete()
+            .eq('filename', filename);
 
-            showNotification('PDF deleted successfully!', 'success');
-            loadPDFs(); // Refresh the list
-        } catch (error) {
-            console.error('Error deleting PDF:', error);
-            showNotification('Error deleting PDF: ' + error.message, 'error');
-        }
+        if (dbError) throw dbError;
+
+        showNotification('PDF deleted successfully!', 'success');
+        loadPDFs();
+    } catch (error) {
+        console.error('Error deleting PDF:', error);
+        showNotification('Error deleting PDF', 'error');
     }
 }
 
