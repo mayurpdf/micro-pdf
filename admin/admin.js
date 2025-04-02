@@ -64,6 +64,9 @@ function handleLogout() {
 async function handlePDFUpload(event) {
     event.preventDefault();
     
+    // Debug log
+    console.log('Form submission started');
+    
     // Get form elements
     const fileInput = document.getElementById('pdfFile');
     const titleInput = document.getElementById('pdfTitle');
@@ -72,6 +75,17 @@ async function handlePDFUpload(event) {
     const yearInput = document.getElementById('yearSelect');
     const branchInput = document.getElementById('branchSelect');
     const subjectInput = document.getElementById('subjectSelect');
+
+    // Debug log form elements
+    console.log('Form elements:', {
+        fileInput: !!fileInput,
+        titleInput: !!titleInput,
+        descriptionInput: !!descriptionInput,
+        priceInput: !!priceInput,
+        yearInput: !!yearInput,
+        branchInput: !!branchInput,
+        subjectInput: !!subjectInput
+    });
 
     // Check if all required elements exist
     if (!fileInput || !titleInput || !descriptionInput || !priceInput || 
@@ -141,7 +155,10 @@ async function handlePDFUpload(event) {
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
         }
 
+        console.log('Starting PDF upload with metadata:', metadata);
         const result = await uploadPDF(file, metadata);
+        console.log('Upload result:', result);
+
         if (result.success) {
             showNotification('PDF uploaded successfully!', 'success');
             // Reset form
@@ -246,16 +263,21 @@ async function deletePDF(filename) {
 
 // Initialize admin functionality
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Admin page loaded');
     checkAuth();
     
     // Load PDFs if on dashboard page
     if (window.location.pathname.includes('dashboard.html')) {
+        console.log('Loading PDFs for dashboard');
         loadPDFs();
     }
     
     // Add event listener for PDF upload form
     const uploadForm = document.getElementById('uploadForm');
     if (uploadForm) {
+        console.log('Found upload form, adding event listener');
         uploadForm.addEventListener('submit', handlePDFUpload);
+    } else {
+        console.error('Upload form not found');
     }
 }); 

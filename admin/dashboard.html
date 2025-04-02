@@ -7,8 +7,6 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/loading.css">
     <link rel="stylesheet" href="admin.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/supabase.js"></script>
 </head>
 <body>
     <header>
@@ -92,7 +90,26 @@
         <p>&copy; 2025 MICRO Store. All rights reserved.</p>
     </footer>
 
-    <script src="admin.js"></script>
+    <!-- Load scripts in correct order -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Wait for Supabase to be loaded
+        window.addEventListener('load', function() {
+            if (typeof supabase === 'undefined') {
+                console.error('Supabase library not loaded');
+                return;
+            }
+            // Load our scripts after Supabase is ready
+            const supabaseScript = document.createElement('script');
+            supabaseScript.src = '../js/supabase.js';
+            supabaseScript.onload = function() {
+                const adminScript = document.createElement('script');
+                adminScript.src = 'admin.js';
+                document.body.appendChild(adminScript);
+            };
+            document.body.appendChild(supabaseScript);
+        });
+    </script>
     <script src="../js/loading.js"></script>
 </body>
 </html> 
