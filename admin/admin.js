@@ -280,4 +280,73 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('Upload form not found');
     }
-}); 
+});
+
+async function uploadPDF(file, metadata) {
+    try {
+        console.log('Starting PDF upload process...');
+        
+        // Generate a unique filename
+        const timestamp = new Date().getTime();
+        const uniqueFilename = `${timestamp}-${file.name}`;
+        console.log('Generated unique filename:', uniqueFilename);
+
+        // Upload file to Supabase Storage
+        console.log('Uploading file to Supabase storage...');
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('pdfs')
+            .upload(uniqueFilename, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) {
+            console.error('Supabase storage upload error:', uploadError);
+            throw new Error(`Failed to upload file: ${uploadError.message}`);
+        }
+
+        console.log('File uploaded successfully to storage:', uploadData);
+
+        // Get the public URL for the uploaded file
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('pdfs')
+            .getPublicUrl(uniqueFilename);
+        
+        console.log('Generated public URL:', publicUrl);
+
+        // Insert record into database
+        console.log('Inserting record into database...');
+        const { data: dbData, error: dbError } = await supabaseClient
+            .from('pdfs')
+            .insert([
+                {
+                    title: metadata.title,
+                    description: metadata.description,
+                    price: metadata.price,
+                    year: metadata.year,
+                    branch: metadata.branch,
+                    subject: metadata.subject,
+                    file_url: publicUrl,
+                    file_name: uniqueFilename,
+                    created_at: new Date().toISOString()
+                }
+            ])
+            .select();
+
+        if (dbError) {
+            console.error('Database insert error:', dbError);
+            // If database insert fails, we should clean up the uploaded file
+            await supabaseClient.storage
+                .from('pdfs')
+                .remove([uniqueFilename]);
+            throw new Error(`Failed to save PDF information: ${dbError.message}`);
+        }
+
+        console.log('Database record created successfully:', dbData);
+        return { success: true, data: dbData[0] };
+
+    } catch (error) {
+        console.error('Upload process failed:', error);
+        return { success: false, error: error.message };
+    }
+} 

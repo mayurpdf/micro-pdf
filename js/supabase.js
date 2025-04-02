@@ -6,7 +6,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let supabaseClient;
 
 try {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            persistSession: true
+        },
+        storage: {
+            maxFileSize: 50 * 1024 * 1024, // 50MB max file size
+            allowedMimeTypes: ['application/pdf']
+        }
+    });
     console.log('Supabase client initialized successfully');
 } catch (error) {
     console.error('Error initializing Supabase client:', error);
