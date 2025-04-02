@@ -43,7 +43,7 @@ const options = {
 const rzp = new Razorpay(options);
 
 // Initialize Supabase client
-const supabase = supabaseClient;
+const supabase = window.supabaseClient;
 
 // DOM Elements
 const pdfGrid = document.getElementById('pdfGrid');

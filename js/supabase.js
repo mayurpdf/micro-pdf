@@ -12,6 +12,9 @@ try {
     console.error('Error initializing Supabase client:', error);
 }
 
+// Export the client for use in other files
+window.supabaseClient = supabaseClient;
+
 // PDF Storage Functions
 async function uploadPDF(file, metadata) {
     try {
