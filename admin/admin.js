@@ -64,15 +64,24 @@ function handleLogout() {
 async function handlePDFUpload(event) {
     event.preventDefault();
     
+    // Get form elements
     const fileInput = document.getElementById('pdfFile');
     const titleInput = document.getElementById('pdfTitle');
     const descriptionInput = document.getElementById('pdfDescription');
     const priceInput = document.getElementById('pdfPrice');
-    const categoryInput = document.getElementById('pdfCategory');
-    const yearInput = document.getElementById('pdfYear');
-    const branchInput = document.getElementById('pdfBranch');
-    const subjectInput = document.getElementById('pdfSubject');
+    const yearInput = document.getElementById('yearSelect');
+    const branchInput = document.getElementById('branchSelect');
+    const subjectInput = document.getElementById('subjectSelect');
 
+    // Check if all required elements exist
+    if (!fileInput || !titleInput || !descriptionInput || !priceInput || 
+        !yearInput || !branchInput || !subjectInput) {
+        console.error('Required form elements not found');
+        showNotification('Error: Form elements not found. Please refresh the page.', 'error');
+        return;
+    }
+
+    // Check if file is selected
     if (!fileInput.files[0]) {
         showNotification('Please select a PDF file', 'error');
         return;
@@ -84,17 +93,54 @@ async function handlePDFUpload(event) {
         return;
     }
 
+    // Validate required fields
+    if (!titleInput.value.trim()) {
+        showNotification('Please enter a title', 'error');
+        return;
+    }
+
+    if (!descriptionInput.value.trim()) {
+        showNotification('Please enter a description', 'error');
+        return;
+    }
+
+    if (!priceInput.value || isNaN(priceInput.value) || parseFloat(priceInput.value) <= 0) {
+        showNotification('Please enter a valid price', 'error');
+        return;
+    }
+
+    if (!yearInput.value) {
+        showNotification('Please select a year', 'error');
+        return;
+    }
+
+    if (!branchInput.value) {
+        showNotification('Please select a branch', 'error');
+        return;
+    }
+
+    if (!subjectInput.value) {
+        showNotification('Please select a subject', 'error');
+        return;
+    }
+
     const metadata = {
-        title: titleInput.value,
-        description: descriptionInput.value,
+        title: titleInput.value.trim(),
+        description: descriptionInput.value.trim(),
         price: parseFloat(priceInput.value),
-        category: categoryInput.value,
         year: yearInput.value,
         branch: branchInput.value,
         subject: subjectInput.value
     };
 
     try {
+        // Show loading state
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        }
+
         const result = await uploadPDF(file, metadata);
         if (result.success) {
             showNotification('PDF uploaded successfully!', 'success');
@@ -108,6 +154,13 @@ async function handlePDFUpload(event) {
     } catch (error) {
         console.error('Upload error:', error);
         showNotification('Error uploading PDF. Please try again.', 'error');
+    } finally {
+        // Reset button state
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Upload PDF';
+        }
     }
 }
 
