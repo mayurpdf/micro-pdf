@@ -79,6 +79,11 @@ async function handlePDFUpload(event) {
     }
 
     const file = fileInput.files[0];
+    if (file.type !== 'application/pdf') {
+        showNotification('Please select a valid PDF file', 'error');
+        return;
+    }
+
     const metadata = {
         title: titleInput.value,
         description: descriptionInput.value,
@@ -120,10 +125,13 @@ async function loadPDFs() {
     `;
     
     try {
-        const { data, error } = await getPDFs();
-        if (error) throw error;
+        const result = await getPDFs();
+        if (!result.success) {
+            throw new Error(result.error);
+        }
 
-        if (data.length === 0) {
+        const data = result.data;
+        if (!data || data.length === 0) {
             pdfList.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-file-pdf" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
@@ -145,6 +153,7 @@ async function loadPDFs() {
             </div>
         `).join('');
     } catch (error) {
+        console.error('Error loading PDFs:', error);
         pdfList.innerHTML = `
             <div class="error-state">
                 <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: var(--error-color); margin-bottom: 1rem;"></i>
@@ -160,11 +169,11 @@ async function deletePDF(filename) {
     if (!confirm('Are you sure you want to delete this PDF?')) return;
 
     try {
-        const { error } = await supabaseClient.storage
+        const { error: storageError } = await supabaseClient.storage
             .from('pdfs')
             .remove([filename]);
 
-        if (error) throw error;
+        if (storageError) throw storageError;
 
         // Delete from database
         const { error: dbError } = await supabaseClient
