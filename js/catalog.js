@@ -9,8 +9,8 @@ const options = {
         handlePaymentSuccess(response);
     },
     prefill: {
-        name: "User Name",
-        email: "user@example.com",
+        name: "Test User",
+        email: "test@example.com",
         contact: "9999999999"
     },
     theme: {
@@ -35,8 +35,6 @@ const options = {
     }
 };
 
-const rzp = new Razorpay(options);
-
 // Initialize Supabase client
 const supabase = supabaseClient;
 
@@ -55,14 +53,19 @@ let filteredPdfs = [];
 // Fetch PDFs from Supabase
 async function fetchPDFs() {
     try {
+        console.log('Fetching PDFs from Supabase...'); // Debug log
         const { data, error } = await supabase
             .from('pdfs')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase error:', error); // Debug log
+            throw error;
+        }
+        
         console.log('Fetched PDFs:', data); // Debug log
-        return data;
+        return data || [];
     } catch (error) {
         console.error('Error fetching PDFs:', error);
         showNotification('Error loading study materials', 'error');
@@ -72,8 +75,19 @@ async function fetchPDFs() {
 
 // Render PDF cards
 function renderPDFs(pdfs) {
+    console.log('Rendering PDFs:', pdfs); // Debug log
     const pdfGrid = document.getElementById('pdfGrid');
+    if (!pdfGrid) {
+        console.error('PDF grid element not found'); // Debug log
+        return;
+    }
+    
     pdfGrid.innerHTML = '';
+
+    if (!pdfs || pdfs.length === 0) {
+        console.log('No PDFs to render'); // Debug log
+        return;
+    }
 
     pdfs.forEach(pdf => {
         const card = document.createElement('div');
@@ -311,8 +325,43 @@ function showNotification(message, type) {
 }
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Page loaded, initializing filters...'); // Debug log
-    initializeFilters();
-    updateDisplay();
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Page loaded, initializing...'); // Debug log
+    try {
+        // Show loading state
+        if (loadingPlaceholder) {
+            loadingPlaceholder.style.display = 'flex';
+        }
+        if (noResults) {
+            noResults.style.display = 'none';
+        }
+
+        // Fetch and display PDFs
+        const pdfs = await fetchPDFs();
+        console.log('PDFs fetched:', pdfs); // Debug log
+
+        if (pdfs && pdfs.length > 0) {
+            renderPDFs(pdfs);
+            if (loadingPlaceholder) {
+                loadingPlaceholder.style.display = 'none';
+            }
+        } else {
+            console.log('No PDFs found'); // Debug log
+            if (noResults) {
+                noResults.style.display = 'flex';
+            }
+            if (loadingPlaceholder) {
+                loadingPlaceholder.style.display = 'none';
+            }
+        }
+
+        // Initialize filters
+        initializeFilters();
+    } catch (error) {
+        console.error('Error initializing page:', error);
+        showNotification('Error loading documents', 'error');
+        if (loadingPlaceholder) {
+            loadingPlaceholder.style.display = 'none';
+        }
+    }
 }); 
