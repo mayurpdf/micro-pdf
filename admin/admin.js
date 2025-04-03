@@ -63,8 +63,6 @@ function handleLogout() {
 // Handle PDF upload
 async function handlePDFUpload(event) {
     event.preventDefault();
-    
-    // Debug log
     console.log('Form submission started');
     
     // Get form elements
@@ -78,62 +76,76 @@ async function handlePDFUpload(event) {
 
     // Debug log form elements
     console.log('Form elements:', {
-        fileInput: !!fileInput,
-        titleInput: !!titleInput,
-        descriptionInput: !!descriptionInput,
-        priceInput: !!priceInput,
-        yearInput: !!yearInput,
-        branchInput: !!branchInput,
-        subjectInput: !!subjectInput
+        fileInput: fileInput ? 'Found' : 'Not found',
+        titleInput: titleInput ? 'Found' : 'Not found',
+        descriptionInput: descriptionInput ? 'Found' : 'Not found',
+        priceInput: priceInput ? 'Found' : 'Not found',
+        yearInput: yearInput ? 'Found' : 'Not found',
+        branchInput: branchInput ? 'Found' : 'Not found',
+        subjectInput: subjectInput ? 'Found' : 'Not found'
     });
 
     // Check if all required elements exist
     if (!fileInput || !titleInput || !descriptionInput || !priceInput || 
         !yearInput || !branchInput || !subjectInput) {
-        console.error('Required form elements not found');
+        console.error('Missing form elements');
         showNotification('Error: Form elements not found. Please refresh the page.', 'error');
         return;
     }
 
     // Check if file is selected
-    if (!fileInput.files[0]) {
+    if (!fileInput.files || !fileInput.files[0]) {
+        console.error('No file selected');
         showNotification('Please select a PDF file', 'error');
         return;
     }
 
     const file = fileInput.files[0];
+    console.log('Selected file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+    });
+
     if (file.type !== 'application/pdf') {
+        console.error('Invalid file type:', file.type);
         showNotification('Please select a valid PDF file', 'error');
         return;
     }
 
     // Validate required fields
     if (!titleInput.value.trim()) {
+        console.error('Title is empty');
         showNotification('Please enter a title', 'error');
         return;
     }
 
     if (!descriptionInput.value.trim()) {
+        console.error('Description is empty');
         showNotification('Please enter a description', 'error');
         return;
     }
 
     if (!priceInput.value || isNaN(priceInput.value) || parseFloat(priceInput.value) <= 0) {
+        console.error('Invalid price:', priceInput.value);
         showNotification('Please enter a valid price', 'error');
         return;
     }
 
     if (!yearInput.value) {
+        console.error('Year not selected');
         showNotification('Please select a year', 'error');
         return;
     }
 
     if (!branchInput.value) {
+        console.error('Branch not selected');
         showNotification('Please select a branch', 'error');
         return;
     }
 
     if (!subjectInput.value) {
+        console.error('Subject not selected');
         showNotification('Please select a subject', 'error');
         return;
     }
@@ -147,6 +159,8 @@ async function handlePDFUpload(event) {
         subject: subjectInput.value
     };
 
+    console.log('Prepared metadata:', metadata);
+
     try {
         // Show loading state
         const submitButton = event.target.querySelector('button[type="submit"]');
@@ -155,7 +169,7 @@ async function handlePDFUpload(event) {
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
         }
 
-        console.log('Starting PDF upload with metadata:', metadata);
+        console.log('Starting PDF upload with metadata');
         const result = await uploadPDF(file, metadata);
         console.log('Upload result:', result);
 
@@ -166,6 +180,7 @@ async function handlePDFUpload(event) {
             // Refresh PDF list
             loadPDFs();
         } else {
+            console.error('Upload failed:', result.error);
             showNotification(result.error || 'Error uploading PDF', 'error');
         }
     } catch (error) {
