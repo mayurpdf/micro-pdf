@@ -71,16 +71,45 @@ async function getPDFs() {
             throw new Error('Supabase client not initialized');
         }
         
-        const { data, error } = await supabaseClient
+        console.log('Fetching PDFs from database...'); // Debug log
+        
+        // First, get all PDFs from the database
+        const { data: dbData, error: dbError } = await supabaseClient
             .from('pdfs')
             .select('*')
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
 
-        if (error) throw error
-        return { success: true, data }
+        if (dbError) {
+            console.error('Database error:', dbError);
+            throw dbError;
+        }
+
+        console.log('Database PDFs:', dbData); // Debug log
+
+        // Then, get signed URLs for each PDF
+        const pdfsWithUrls = await Promise.all(dbData.map(async (pdf) => {
+            try {
+                const { data: urlData, error: urlError } = await supabaseClient.storage
+                    .from('pdfs')
+                    .createSignedUrl(pdf.filename, 3600); // URL valid for 1 hour
+
+                if (urlError) {
+                    console.error('Error getting URL for PDF:', pdf.filename, urlError);
+                    return { ...pdf, download_url: null };
+                }
+
+                return { ...pdf, download_url: urlData.signedUrl };
+            } catch (error) {
+                console.error('Error processing PDF:', pdf.filename, error);
+                return { ...pdf, download_url: null };
+            }
+        }));
+
+        console.log('PDFs with URLs:', pdfsWithUrls); // Debug log
+        return { success: true, data: pdfsWithUrls };
     } catch (error) {
-        console.error('Error fetching PDFs:', error)
-        return { success: false, error: error.message }
+        console.error('Error in getPDFs:', error);
+        return { success: false, error: error.message };
     }
 }
 

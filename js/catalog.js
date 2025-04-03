@@ -65,7 +65,28 @@ async function fetchPDFs() {
         }
         
         console.log('Fetched PDFs:', data); // Debug log
-        return data || [];
+
+        // Get signed URLs for each PDF
+        const pdfsWithUrls = await Promise.all(data.map(async (pdf) => {
+            try {
+                const { data: urlData, error: urlError } = await supabase.storage
+                    .from('pdfs')
+                    .createSignedUrl(pdf.filename, 3600);
+
+                if (urlError) {
+                    console.error('Error getting URL for PDF:', pdf.filename, urlError);
+                    return { ...pdf, download_url: null };
+                }
+
+                return { ...pdf, download_url: urlData.signedUrl };
+            } catch (error) {
+                console.error('Error processing PDF:', pdf.filename, error);
+                return { ...pdf, download_url: null };
+            }
+        }));
+
+        console.log('PDFs with URLs:', pdfsWithUrls); // Debug log
+        return pdfsWithUrls || [];
     } catch (error) {
         console.error('Error fetching PDFs:', error);
         showNotification('Error loading study materials', 'error');
@@ -104,6 +125,9 @@ function renderPDFs(pdfs) {
         
         // Format the price
         const price = pdf.price ? `₹${pdf.price}` : '₹49';
+
+        // Add download URL to the card data
+        card.dataset.downloadUrl = pdf.download_url || '';
 
         card.innerHTML = `
             <div class="pdf-info">
