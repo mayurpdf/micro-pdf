@@ -63,14 +63,19 @@ function handleLogout() {
 // Handle PDF upload
 async function handlePDFUpload(event) {
     event.preventDefault();
+    console.log('Starting PDF upload process...');
     
     const fileInput = document.getElementById('pdfFile');
     const titleInput = document.getElementById('pdfTitle');
     const priceInput = document.getElementById('pdfPrice');
     const descriptionInput = document.getElementById('pdfDescription');
+    const yearSelect = document.getElementById('yearSelect');
+    const branchSelect = document.getElementById('branchSelect');
+    const subjectSelect = document.getElementById('subjectSelect');
     
     const file = fileInput.files[0];
     
+    // Validate inputs
     if (!file) {
         showNotification('Please select a PDF file', 'error');
         return;
@@ -90,6 +95,21 @@ async function handlePDFUpload(event) {
         showNotification('Please enter a valid price', 'error');
         return;
     }
+
+    if (!yearSelect.value) {
+        showNotification('Please select a year', 'error');
+        return;
+    }
+
+    if (!branchSelect.value) {
+        showNotification('Please select a branch', 'error');
+        return;
+    }
+
+    if (!subjectSelect.value) {
+        showNotification('Please select a subject', 'error');
+        return;
+    }
     
     // Show loading state
     const submitButton = event.target.querySelector('button[type="submit"]');
@@ -98,19 +118,26 @@ async function handlePDFUpload(event) {
     submitButton.disabled = true;
     
     try {
+        console.log('Preparing metadata...');
         const metadata = {
             title: titleInput.value.trim(),
             price: parseFloat(priceInput.value),
-            description: descriptionInput.value.trim()
+            description: descriptionInput.value.trim(),
+            year: yearSelect.value,
+            branch: branchSelect.value,
+            subject: subjectSelect.value
         };
         
+        console.log('Uploading file with metadata:', metadata);
         const result = await uploadPDF(file, metadata);
         
         if (result.success) {
+            console.log('Upload successful:', result.data);
             showNotification('PDF uploaded successfully!', 'success');
             event.target.reset();
             loadPDFs(); // Refresh the PDF list
         } else {
+            console.error('Upload failed:', result.error);
             throw new Error(result.error || 'Failed to upload PDF');
         }
     } catch (error) {
