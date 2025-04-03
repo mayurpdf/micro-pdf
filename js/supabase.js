@@ -1,86 +1,40 @@
 // Supabase configuration
-const SUPABASE_URL = 'https://iqhtwrhndoicqmqjnods.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxaHR3cmhuZG9pY3FtcWpub2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTgzNzYsImV4cCI6MjA1OTE3NDM3Nn0.bIPtfS7_PXQM5diEubhyR88AjP6iO9iOHJKYM5rlNrs';
+const SUPABASE_URL = 'https://iqhtwrhndoicqmqjnods.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxaHR3cmhuZG9pY3FtcWpub2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTgzNzYsImV4cCI6MjA1OTE3NDM3Nn0.bIPtfS7_PXQM5diEubhyR88AjP6iO9iOHJKYM5rlNrs'
 
 // Initialize Supabase client
 let supabaseClient;
-
 try {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            persistSession: true
-        },
-        storage: {
-            maxFileSize: 50 * 1024 * 1024, // 50MB max file size
-            allowedMimeTypes: ['application/pdf']
-        }
-    });
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase client initialized successfully');
 } catch (error) {
     console.error('Error initializing Supabase client:', error);
 }
 
-// Export the client for use in other files
-window.supabaseClient = supabaseClient;
-
 // PDF Storage Functions
 async function uploadPDF(file, metadata) {
     try {
-        console.log('Starting PDF upload process...');
+        if (!supabaseClient) {
+            throw new Error('Supabase client not initialized');
+        }
         
-        // Generate a unique filename
-        const timestamp = new Date().getTime();
-        const uniqueFilename = `${timestamp}-${file.name}`;
-        console.log('Generated unique filename:', uniqueFilename);
-
-        // Check if storage bucket exists
-        const { data: buckets, error: bucketError } = await supabaseClient.storage.listBuckets();
-        if (bucketError) {
-            console.error('Error checking buckets:', bucketError);
-            throw new Error(`Failed to check storage buckets: ${bucketError.message}`);
-        }
-
-        console.log('Available buckets:', buckets);
-
-        // Create bucket if it doesn't exist
-        if (!buckets.some(bucket => bucket.name === 'pdfs')) {
-            console.log('Creating pdfs bucket...');
-            const { error: createError } = await supabaseClient.storage.createBucket('pdfs', {
-                public: true,
-                fileSizeLimit: 50 * 1024 * 1024, // 50MB
-                allowedMimeTypes: ['application/pdf']
-            });
-            if (createError) {
-                console.error('Error creating bucket:', createError);
-                throw new Error(`Failed to create storage bucket: ${createError.message}`);
-            }
-        }
-
         // Upload file to Supabase Storage
-        console.log('Uploading file to Supabase storage...');
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { data: fileData, error: uploadError } = await supabaseClient.storage
             .from('pdfs')
-            .upload(uniqueFilename, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
+            .upload(fileName, file);
 
         if (uploadError) {
-            console.error('Supabase storage upload error:', uploadError);
-            throw new Error(`Failed to upload file: ${uploadError.message}`);
+            console.error('Storage upload error:', uploadError);
+            throw uploadError;
         }
 
-        console.log('File uploaded successfully to storage:', uploadData);
+        if (!fileData) {
+            throw new Error('No file data returned from storage upload');
+        }
 
-        // Get the public URL for the uploaded file
-        const { data: { publicUrl } } = supabaseClient.storage
-            .from('pdfs')
-            .getPublicUrl(uniqueFilename);
-        
-        console.log('Generated public URL:', publicUrl);
-
-        // Insert record into database
-        console.log('Inserting record into database...');
+        // Create database record
         const { data: dbData, error: dbError } = await supabaseClient
             .from('pdfs')
             .insert([
@@ -88,30 +42,25 @@ async function uploadPDF(file, metadata) {
                     title: metadata.title,
                     description: metadata.description,
                     price: metadata.price,
-                    year: metadata.year,
-                    branch: metadata.branch,
-                    subject: metadata.subject,
-                    file_url: publicUrl,
-                    file_name: uniqueFilename,
-                    created_at: new Date().toISOString()
+                    filename: fileName,
+                    storage_path: fileData.path
                 }
             ])
-            .select();
+            .select()
+            .single();
 
         if (dbError) {
             console.error('Database insert error:', dbError);
-            // If database insert fails, we should clean up the uploaded file
-            await supabaseClient.storage
-                .from('pdfs')
-                .remove([uniqueFilename]);
-            throw new Error(`Failed to save PDF information: ${dbError.message}`);
+            throw dbError;
         }
 
-        console.log('Database record created successfully:', dbData);
-        return { success: true, data: dbData[0] };
+        if (!dbData) {
+            throw new Error('No data returned from database insert');
+        }
 
+        return { success: true, data: dbData };
     } catch (error) {
-        console.error('Upload process failed:', error);
+        console.error('Error uploading PDF:', error);
         return { success: false, error: error.message };
     }
 }

@@ -1,22 +1,17 @@
 // Initialize Razorpay
 const options = {
-    key: 'rzp_test_2JXqXqXqXqXqXq', // Replace with your actual test key
+    key: "rzp_test_UbdMSUbQI2Eh6B", // Test mode API key
     amount: 0,
     currency: "INR",
     name: "MICRO Store",
-    description: "Educational Material Purchase",
-    image: "images/logo.png",
+    description: "PDF Document Purchase",
     handler: function (response) {
         handlePaymentSuccess(response);
     },
     prefill: {
-        name: "Test User",
-        email: "test@example.com",
+        name: "User Name",
+        email: "user@example.com",
         contact: "9999999999"
-    },
-    notes: {
-        purpose: "Educational Material",
-        test_mode: "true"
     },
     theme: {
         color: "#3399cc"
@@ -43,7 +38,7 @@ const options = {
 const rzp = new Razorpay(options);
 
 // Initialize Supabase client
-const supabase = window.supabaseClient;
+const supabase = supabaseClient;
 
 // DOM Elements
 const pdfGrid = document.getElementById('pdfGrid');

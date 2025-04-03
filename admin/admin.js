@@ -63,136 +63,62 @@ function handleLogout() {
 // Handle PDF upload
 async function handlePDFUpload(event) {
     event.preventDefault();
-    console.log('Form submission started');
     
-    // Get form elements
     const fileInput = document.getElementById('pdfFile');
     const titleInput = document.getElementById('pdfTitle');
-    const descriptionInput = document.getElementById('pdfDescription');
     const priceInput = document.getElementById('pdfPrice');
-    const yearInput = document.getElementById('yearSelect');
-    const branchInput = document.getElementById('branchSelect');
-    const subjectInput = document.getElementById('subjectSelect');
-
-    // Debug log form elements
-    console.log('Form elements:', {
-        fileInput: fileInput ? 'Found' : 'Not found',
-        titleInput: titleInput ? 'Found' : 'Not found',
-        descriptionInput: descriptionInput ? 'Found' : 'Not found',
-        priceInput: priceInput ? 'Found' : 'Not found',
-        yearInput: yearInput ? 'Found' : 'Not found',
-        branchInput: branchInput ? 'Found' : 'Not found',
-        subjectInput: subjectInput ? 'Found' : 'Not found'
-    });
-
-    // Check if all required elements exist
-    if (!fileInput || !titleInput || !descriptionInput || !priceInput || 
-        !yearInput || !branchInput || !subjectInput) {
-        console.error('Missing form elements');
-        showNotification('Error: Form elements not found. Please refresh the page.', 'error');
-        return;
-    }
-
-    // Check if file is selected
-    if (!fileInput.files || !fileInput.files[0]) {
-        console.error('No file selected');
+    const descriptionInput = document.getElementById('pdfDescription');
+    
+    const file = fileInput.files[0];
+    
+    if (!file) {
         showNotification('Please select a PDF file', 'error');
         return;
     }
-
-    const file = fileInput.files[0];
-    console.log('Selected file:', {
-        name: file.name,
-        type: file.type,
-        size: file.size
-    });
-
+    
     if (file.type !== 'application/pdf') {
-        console.error('Invalid file type:', file.type);
         showNotification('Please select a valid PDF file', 'error');
         return;
     }
-
-    // Validate required fields
+    
     if (!titleInput.value.trim()) {
-        console.error('Title is empty');
         showNotification('Please enter a title', 'error');
         return;
     }
-
-    if (!descriptionInput.value.trim()) {
-        console.error('Description is empty');
-        showNotification('Please enter a description', 'error');
-        return;
-    }
-
-    if (!priceInput.value || isNaN(priceInput.value) || parseFloat(priceInput.value) <= 0) {
-        console.error('Invalid price:', priceInput.value);
+    
+    if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
         showNotification('Please enter a valid price', 'error');
         return;
     }
-
-    if (!yearInput.value) {
-        console.error('Year not selected');
-        showNotification('Please select a year', 'error');
-        return;
-    }
-
-    if (!branchInput.value) {
-        console.error('Branch not selected');
-        showNotification('Please select a branch', 'error');
-        return;
-    }
-
-    if (!subjectInput.value) {
-        console.error('Subject not selected');
-        showNotification('Please select a subject', 'error');
-        return;
-    }
-
-    const metadata = {
-        title: titleInput.value.trim(),
-        description: descriptionInput.value.trim(),
-        price: parseFloat(priceInput.value),
-        year: yearInput.value,
-        branch: branchInput.value,
-        subject: subjectInput.value
-    };
-
-    console.log('Prepared metadata:', metadata);
-
+    
+    // Show loading state
+    const submitButton = event.target.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.innerHTML = '<div class="loading-spinner"></div> Uploading...';
+    submitButton.disabled = true;
+    
     try {
-        // Show loading state
-        const submitButton = event.target.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-        }
-
-        console.log('Starting PDF upload with metadata');
+        const metadata = {
+            title: titleInput.value.trim(),
+            price: parseFloat(priceInput.value),
+            description: descriptionInput.value.trim()
+        };
+        
         const result = await uploadPDF(file, metadata);
-        console.log('Upload result:', result);
-
+        
         if (result.success) {
             showNotification('PDF uploaded successfully!', 'success');
-            // Reset form
             event.target.reset();
-            // Refresh PDF list
-            loadPDFs();
+            loadPDFs(); // Refresh the PDF list
         } else {
-            console.error('Upload failed:', result.error);
-            showNotification(result.error || 'Error uploading PDF', 'error');
+            throw new Error(result.error || 'Failed to upload PDF');
         }
     } catch (error) {
         console.error('Upload error:', error);
-        showNotification('Error uploading PDF. Please try again.', 'error');
+        showNotification(error.message || 'Error uploading PDF', 'error');
     } finally {
-        // Reset button state
-        const submitButton = event.target.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.innerHTML = 'Upload PDF';
-        }
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
     }
 }
 
@@ -211,12 +137,14 @@ async function loadPDFs() {
     
     try {
         const result = await getPDFs();
+        
         if (!result.success) {
             throw new Error(result.error);
         }
-
-        const data = result.data;
-        if (!data || data.length === 0) {
+        
+        const pdfs = result.data;
+        
+        if (pdfs.length === 0) {
             pdfList.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-file-pdf" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
@@ -227,18 +155,17 @@ async function loadPDFs() {
             return;
         }
         
-        pdfList.innerHTML = data.map(pdf => `
+        pdfList.innerHTML = pdfs.map(pdf => `
             <div class="pdf-card">
                 <h3>${pdf.title}</h3>
                 <p>${pdf.description}</p>
                 <p>Price: ₹${pdf.price}</p>
                 <div class="pdf-actions">
-                    <button class="action-button delete-button" onclick="deletePDF('${pdf.filename}')">Delete</button>
+                    <button class="action-button delete-button" onclick="deletePDF(${pdf.id}, '${pdf.filename}')">Delete</button>
                 </div>
             </div>
         `).join('');
     } catch (error) {
-        console.error('Error loading PDFs:', error);
         pdfList.innerHTML = `
             <div class="error-state">
                 <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: var(--error-color); margin-bottom: 1rem;"></i>
@@ -250,118 +177,49 @@ async function loadPDFs() {
 }
 
 // Delete PDF
-async function deletePDF(filename) {
-    if (!confirm('Are you sure you want to delete this PDF?')) return;
+async function deletePDF(id, filename) {
+    if (confirm('Are you sure you want to delete this PDF?')) {
+        try {
+            // Delete from storage
+            const { error: storageError } = await supabaseClient.storage
+                .from('pdfs')
+                .remove([filename]);
 
-    try {
-        const { error: storageError } = await supabaseClient.storage
-            .from('pdfs')
-            .remove([filename]);
+            if (storageError) {
+                throw storageError;
+            }
 
-        if (storageError) throw storageError;
+            // Delete from database
+            const { error: dbError } = await supabaseClient
+                .from('pdfs')
+                .delete()
+                .eq('id', id);
 
-        // Delete from database
-        const { error: dbError } = await supabaseClient
-            .from('pdfs')
-            .delete()
-            .eq('filename', filename);
+            if (dbError) {
+                throw dbError;
+            }
 
-        if (dbError) throw dbError;
-
-        showNotification('PDF deleted successfully!', 'success');
-        loadPDFs();
-    } catch (error) {
-        console.error('Error deleting PDF:', error);
-        showNotification('Error deleting PDF', 'error');
+            showNotification('PDF deleted successfully!', 'success');
+            loadPDFs(); // Refresh the list
+        } catch (error) {
+            console.error('Error deleting PDF:', error);
+            showNotification('Error deleting PDF: ' + error.message, 'error');
+        }
     }
 }
 
 // Initialize admin functionality
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Admin page loaded');
     checkAuth();
     
     // Load PDFs if on dashboard page
     if (window.location.pathname.includes('dashboard.html')) {
-        console.log('Loading PDFs for dashboard');
         loadPDFs();
     }
     
     // Add event listener for PDF upload form
     const uploadForm = document.getElementById('uploadForm');
     if (uploadForm) {
-        console.log('Found upload form, adding event listener');
         uploadForm.addEventListener('submit', handlePDFUpload);
-    } else {
-        console.error('Upload form not found');
     }
-});
-
-async function uploadPDF(file, metadata) {
-    try {
-        console.log('Starting PDF upload process...');
-        
-        // Generate a unique filename
-        const timestamp = new Date().getTime();
-        const uniqueFilename = `${timestamp}-${file.name}`;
-        console.log('Generated unique filename:', uniqueFilename);
-
-        // Upload file to Supabase Storage
-        console.log('Uploading file to Supabase storage...');
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage
-            .from('pdfs')
-            .upload(uniqueFilename, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
-
-        if (uploadError) {
-            console.error('Supabase storage upload error:', uploadError);
-            throw new Error(`Failed to upload file: ${uploadError.message}`);
-        }
-
-        console.log('File uploaded successfully to storage:', uploadData);
-
-        // Get the public URL for the uploaded file
-        const { data: { publicUrl } } = supabaseClient.storage
-            .from('pdfs')
-            .getPublicUrl(uniqueFilename);
-        
-        console.log('Generated public URL:', publicUrl);
-
-        // Insert record into database
-        console.log('Inserting record into database...');
-        const { data: dbData, error: dbError } = await supabaseClient
-            .from('pdfs')
-            .insert([
-                {
-                    title: metadata.title,
-                    description: metadata.description,
-                    price: metadata.price,
-                    year: metadata.year,
-                    branch: metadata.branch,
-                    subject: metadata.subject,
-                    file_url: publicUrl,
-                    file_name: uniqueFilename,
-                    created_at: new Date().toISOString()
-                }
-            ])
-            .select();
-
-        if (dbError) {
-            console.error('Database insert error:', dbError);
-            // If database insert fails, we should clean up the uploaded file
-            await supabaseClient.storage
-                .from('pdfs')
-                .remove([uniqueFilename]);
-            throw new Error(`Failed to save PDF information: ${dbError.message}`);
-        }
-
-        console.log('Database record created successfully:', dbData);
-        return { success: true, data: dbData[0] };
-
-    } catch (error) {
-        console.error('Upload process failed:', error);
-        return { success: false, error: error.message };
-    }
-} 
+}); 
