@@ -60,40 +60,17 @@ function handleLogout() {
     window.location.href = 'login.html';
 }
 
-// Initialize Supabase client
-let supabaseClient;
-try {
-    supabaseClient = supabase.createClient(
-        'https://iqhtwrhndoicqmqjnods.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxaHR3cmhuZG9pY3FtcWpub2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTgzNzYsImV4cCI6MjA1OTE3NDM3Nn0.bIPtfS7_PXQM5diEubhyR88AjP6iO9iOHJKYM5rlNrs',
-        {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true
-            }
-        }
-    );
-    console.log('Supabase client initialized in admin dashboard');
-} catch (error) {
-    console.error('Error initializing Supabase client:', error);
-}
-
 // Handle PDF upload
 async function handlePDFUpload(event) {
     event.preventDefault();
-    console.log('Starting PDF upload process...');
     
     const fileInput = document.getElementById('pdfFile');
     const titleInput = document.getElementById('pdfTitle');
     const priceInput = document.getElementById('pdfPrice');
     const descriptionInput = document.getElementById('pdfDescription');
-    const yearSelect = document.getElementById('yearSelect');
-    const branchSelect = document.getElementById('branchSelect');
-    const subjectSelect = document.getElementById('subjectSelect');
     
     const file = fileInput.files[0];
     
-    // Validate inputs
     if (!file) {
         showNotification('Please select a PDF file', 'error');
         return;
@@ -113,21 +90,6 @@ async function handlePDFUpload(event) {
         showNotification('Please enter a valid price', 'error');
         return;
     }
-
-    if (!yearSelect.value) {
-        showNotification('Please select a year', 'error');
-        return;
-    }
-
-    if (!branchSelect.value) {
-        showNotification('Please select a branch', 'error');
-        return;
-    }
-
-    if (!subjectSelect.value) {
-        showNotification('Please select a subject', 'error');
-        return;
-    }
     
     // Show loading state
     const submitButton = event.target.querySelector('button[type="submit"]');
@@ -136,73 +98,21 @@ async function handlePDFUpload(event) {
     submitButton.disabled = true;
     
     try {
-        console.log('Preparing metadata...');
         const metadata = {
             title: titleInput.value.trim(),
             price: parseFloat(priceInput.value),
-            description: descriptionInput.value.trim(),
-            year: yearSelect.value,
-            branch: branchSelect.value,
-            subject: subjectSelect.value
+            description: descriptionInput.value.trim()
         };
         
-        console.log('Uploading file with metadata:', metadata);
+        const result = await uploadPDF(file, metadata);
         
-        // Upload file to Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        
-        console.log('Starting file upload to storage:', fileName);
-        
-        const { data: fileData, error: uploadError } = await supabaseClient.storage
-            .from('pdfs')
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
-
-        if (uploadError) {
-            console.error('Storage upload error:', uploadError);
-            throw uploadError;
+        if (result.success) {
+            showNotification('PDF uploaded successfully!', 'success');
+            event.target.reset();
+            loadPDFs(); // Refresh the PDF list
+        } else {
+            throw new Error(result.error || 'Failed to upload PDF');
         }
-
-        if (!fileData) {
-            throw new Error('No file data returned from storage upload');
-        }
-
-        console.log('File uploaded successfully to storage:', fileData);
-
-        // Create database record
-        const { data: dbData, error: dbError } = await supabaseClient
-            .from('pdfs')
-            .insert([
-                {
-                    title: metadata.title,
-                    description: metadata.description,
-                    price: metadata.price,
-                    filename: fileName,
-                    storage_path: fileData.path,
-                    year: metadata.year,
-                    branch: metadata.branch,
-                    subject: metadata.subject
-                }
-            ])
-            .select()
-            .single();
-
-        if (dbError) {
-            console.error('Database insert error:', dbError);
-            throw dbError;
-        }
-
-        if (!dbData) {
-            throw new Error('No data returned from database insert');
-        }
-
-        console.log('Database record created successfully:', dbData);
-        showNotification('PDF uploaded successfully!', 'success');
-        event.target.reset();
-        loadPDFs(); // Refresh the PDF list
     } catch (error) {
         console.error('Upload error:', error);
         showNotification(error.message || 'Error uploading PDF', 'error');

@@ -5,17 +5,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Initialize Supabase client
 let supabaseClient;
 try {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            autoRefreshToken: true,
-            persistSession: true
-        },
-        global: {
-            headers: {
-                'x-application-name': 'micro-pdf'
-            }
-        }
-    });
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase client initialized successfully');
 } catch (error) {
     console.error('Error initializing Supabase client:', error);
@@ -27,29 +17,13 @@ async function uploadPDF(file, metadata) {
         if (!supabaseClient) {
             throw new Error('Supabase client not initialized');
         }
-
-        // Validate file
-        if (!file || !(file instanceof File)) {
-            throw new Error('Invalid file object');
-        }
-
-        // Validate metadata
-        if (!metadata || !metadata.title || !metadata.price) {
-            throw new Error('Invalid metadata');
-        }
         
         // Upload file to Supabase Storage
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        
-        console.log('Starting file upload:', fileName);
-        
+        const fileName = `${Date.now()}.${fileExt}`;
         const { data: fileData, error: uploadError } = await supabaseClient.storage
             .from('pdfs')
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
+            .upload(fileName, file);
 
         if (uploadError) {
             console.error('Storage upload error:', uploadError);
@@ -60,21 +34,16 @@ async function uploadPDF(file, metadata) {
             throw new Error('No file data returned from storage upload');
         }
 
-        console.log('File uploaded successfully:', fileData);
-
         // Create database record
         const { data: dbData, error: dbError } = await supabaseClient
             .from('pdfs')
             .insert([
                 {
                     title: metadata.title,
-                    description: metadata.description || '',
+                    description: metadata.description,
                     price: metadata.price,
                     filename: fileName,
-                    storage_path: fileData.path,
-                    year: metadata.year,
-                    branch: metadata.branch,
-                    subject: metadata.subject
+                    storage_path: fileData.path
                 }
             ])
             .select()
@@ -89,7 +58,6 @@ async function uploadPDF(file, metadata) {
             throw new Error('No data returned from database insert');
         }
 
-        console.log('Database record created successfully:', dbData);
         return { success: true, data: dbData };
     } catch (error) {
         console.error('Error uploading PDF:', error);
