@@ -60,6 +60,24 @@ function handleLogout() {
     window.location.href = 'login.html';
 }
 
+// Initialize Supabase client
+let supabaseClient;
+try {
+    supabaseClient = supabase.createClient(
+        'https://iqhtwrhndoicqmqjnods.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxaHR3cmhuZG9pY3FtcWpub2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTgzNzYsImV4cCI6MjA1OTE3NDM3Nn0.bIPtfS7_PXQM5diEubhyR88AjP6iO9iOHJKYM5rlNrs',
+        {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true
+            }
+        }
+    );
+    console.log('Supabase client initialized in admin dashboard');
+} catch (error) {
+    console.error('Error initializing Supabase client:', error);
+}
+
 // Handle PDF upload
 async function handlePDFUpload(event) {
     event.preventDefault();
@@ -129,17 +147,62 @@ async function handlePDFUpload(event) {
         };
         
         console.log('Uploading file with metadata:', metadata);
-        const result = await uploadPDF(file, metadata);
         
-        if (result.success) {
-            console.log('Upload successful:', result.data);
-            showNotification('PDF uploaded successfully!', 'success');
-            event.target.reset();
-            loadPDFs(); // Refresh the PDF list
-        } else {
-            console.error('Upload failed:', result.error);
-            throw new Error(result.error || 'Failed to upload PDF');
+        // Upload file to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+        
+        console.log('Starting file upload to storage:', fileName);
+        
+        const { data: fileData, error: uploadError } = await supabaseClient.storage
+            .from('pdfs')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            throw uploadError;
         }
+
+        if (!fileData) {
+            throw new Error('No file data returned from storage upload');
+        }
+
+        console.log('File uploaded successfully to storage:', fileData);
+
+        // Create database record
+        const { data: dbData, error: dbError } = await supabaseClient
+            .from('pdfs')
+            .insert([
+                {
+                    title: metadata.title,
+                    description: metadata.description,
+                    price: metadata.price,
+                    filename: fileName,
+                    storage_path: fileData.path,
+                    year: metadata.year,
+                    branch: metadata.branch,
+                    subject: metadata.subject
+                }
+            ])
+            .select()
+            .single();
+
+        if (dbError) {
+            console.error('Database insert error:', dbError);
+            throw dbError;
+        }
+
+        if (!dbData) {
+            throw new Error('No data returned from database insert');
+        }
+
+        console.log('Database record created successfully:', dbData);
+        showNotification('PDF uploaded successfully!', 'success');
+        event.target.reset();
+        loadPDFs(); // Refresh the PDF list
     } catch (error) {
         console.error('Upload error:', error);
         showNotification(error.message || 'Error uploading PDF', 'error');
