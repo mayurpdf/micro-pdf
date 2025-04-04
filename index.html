@@ -13,26 +13,26 @@
 </head>
 <body>
     <header>
-        <nav>
-            <div class="logo"><a href="index.html">MICRO Store</a></div>
-            <div class="menu-toggle" id="menuToggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <ul id="navMenu">
-                <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
-                <li><a href="catalog.html"><i class="fas fa-book"></i> Catalog</a></li>
-                <li><a href="admin/login.html"><i class="fas fa-user-shield"></i> Admin Login</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <h1 class="logo">MICRO Store</h1>
+            <button class="mobile-nav-toggle" aria-label="Toggle navigation">☰</button>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="catalog.html">Catalog</a></li>
+                    <li><a href="admin/login.html">Admin Login</a></li>
+                </ul>
+            </nav>
+        </div>
     </header>
 
     <main>
         <section class="hero">
-            <h1>Welcome to MICRO Store</h1>
-            <p>Browse and purchase high-quality PDF documents</p>
-            <a href="catalog.html" class="cta-button">View Catalog</a>
+            <div class="hero-content">
+                <h1>Welcome to MICRO Store</h1>
+                <p>Your one-stop destination for quality study materials</p>
+                <a href="catalog.html" class="cta-button">View Catalog</a>
+            </div>
         </section>
 
         <section class="features">
@@ -61,12 +61,21 @@
         <p>&copy; 2025 MICRO Store. All rights reserved.</p>
     </footer>
 
+    <script src="js/loading.js"></script>
     <script>
         // Mobile menu toggle
-        document.getElementById('menuToggle').addEventListener('click', function() {
-            document.getElementById('navMenu').classList.toggle('active');
+        document.querySelector('.mobile-nav-toggle').addEventListener('click', function() {
+            document.querySelector('nav ul').classList.toggle('active');
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const nav = document.querySelector('nav ul');
+            const toggle = document.querySelector('.mobile-nav-toggle');
+            if (!nav.contains(event.target) && !toggle.contains(event.target)) {
+                nav.classList.remove('active');
+            }
         });
     </script>
-    <script src="js/loading.js"></script>
 </body>
 </html> 
