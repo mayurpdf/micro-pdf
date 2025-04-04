@@ -1,6 +1,6 @@
 // Initialize Razorpay
 const options = {
-    key: "rzp_test_UbdMSUbQI2Eh6B", // Test mode API key
+    key: "rzp_live_gNzl95zcLTH5Jt", // Live mode API key
     amount: 0,
     currency: "INR",
     name: "MICRO Store",
@@ -260,7 +260,14 @@ function initializeFilters() {
 function initiatePayment(pdfId, amount) {
     console.log('Initiating payment for PDF:', pdfId, 'Amount:', amount); // Debug log
     
-    options.amount = amount * 100; // Convert to paise
+    // Ensure amount is a valid number
+    const amountInPaise = Math.round(parseFloat(amount) * 100);
+    if (isNaN(amountInPaise) || amountInPaise <= 0) {
+        showNotification('Invalid amount specified', 'error');
+        return;
+    }
+    
+    options.amount = amountInPaise;
     options.prefill = {
         name: "Test User",
         email: "test@example.com",
@@ -270,8 +277,7 @@ function initiatePayment(pdfId, amount) {
     // Add notes for tracking
     options.notes = {
         pdf_id: pdfId,
-        purpose: "Educational Material",
-        test_mode: "true"
+        purpose: "Educational Material"
     };
 
     try {
@@ -288,17 +294,43 @@ async function handlePaymentSuccess(response) {
     try {
         console.log('Payment response:', response); // Debug log
 
-        // For test mode, we'll use a simpler verification
+        // Get the PDF ID from the notes
+        const pdfId = options.notes.pdf_id;
+        const amount = options.amount / 100; // Convert back to rupees
+
         const purchaseData = {
             payment_id: response.razorpay_payment_id,
-            pdf_id: response.razorpay_order_id ? response.razorpay_order_id.split('_')[1] : response.razorpay_payment_id,
-            amount: response.razorpay_amount / 100,
+            pdf_id: pdfId,
+            amount: amount,
             status: 'completed',
-            created_at: new Date().toISOString(),
-            test_mode: true // Add flag for test mode
+            created_at: new Date().toISOString()
         };
 
         console.log('Recording purchase with data:', purchaseData); // Debug log
+
+        // First, get the PDF details
+        const { data: pdfData, error: pdfError } = await supabase
+            .from('pdfs')
+            .select('*')
+            .eq('id', pdfId)
+            .single();
+
+        if (pdfError) {
+            throw new Error('Failed to fetch PDF details: ' + pdfError.message);
+        }
+
+        if (!pdfData) {
+            throw new Error('PDF not found');
+        }
+
+        // Get signed URL for the PDF
+        const { data: urlData, error: urlError } = await supabase.storage
+            .from('pdfs')
+            .createSignedUrl(pdfData.filename, 60); // URL valid for 60 seconds
+
+        if (urlError) {
+            throw new Error('Failed to generate download URL: ' + urlError.message);
+        }
 
         // Record the purchase
         const { data, error } = await supabase
@@ -307,20 +339,24 @@ async function handlePaymentSuccess(response) {
 
         if (error) {
             console.error('Supabase error:', error); // Debug log
-            showNotification('Error recording purchase. Please try again.', 'error');
-            return;
+            // Continue with download even if purchase recording fails
+            console.warn('Failed to record purchase, but continuing with download');
         }
 
         console.log('Purchase recorded successfully:', data); // Debug log
-        showNotification('Payment successful! Redirecting to download...', 'success');
+        showNotification('Payment successful! Downloading your PDF...', 'success');
         
-        // Redirect to download page with payment ID
-        setTimeout(() => {
-            window.location.href = `download.html?id=${response.razorpay_payment_id}`;
-        }, 2000);
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = urlData.signedUrl;
+        link.download = pdfData.title + '.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
     } catch (error) {
         console.error('Error in handlePaymentSuccess:', error); // Debug log
-        showNotification('Error processing payment. Please try again.', 'error');
+        showNotification('Error processing payment: ' + error.message, 'error');
     }
 }
 
