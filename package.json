@@ -1,0 +1,13 @@
+{
+  "name": "mk-pdf-store",
+  "version": "1.0.0",
+  "description": "PDF Store with Firebase Authentication",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server -p 3000",
+    "dev": "http-server -p 3000 -c-1"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+} 

@@ -3,79 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MICRO Store</title>
+    <title>MAYUR K (MK)</title>
+    <!-- Combined CSS files and moved Font Awesome to end for better performance -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/loading.css">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <header>
-        <div class="container">
-            <h1 class="logo">MICRO Store</h1>
-            <button class="mobile-nav-toggle" aria-label="Toggle navigation">☰</button>
-            <nav>
-                <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="catalog.html">Catalog</a></li>
-                    <li><a href="admin/login.html">Admin Login</a></li>
-                </ul>
-            </nav>
-        </div>
+        <nav class="navbar">
+            <div class="logo">
+                <img src="images/Screenshot 2025-04-04 211040.png" alt="MK Logo" class="nav-logo">
+                
+            </div>
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="catalog.html"><i class="fas fa-book"></i> Catalog</a></li>
+                <li><a href="admin/login.html"><i class="fas fa-user-shield"></i> Admin Login</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
         <section class="hero">
-            <div class="hero-content">
-                <h1>Welcome to MICRO Store</h1>
-                <p>Your one-stop destination for quality study materials</p>
-                <a href="catalog.html" class="cta-button">View Catalog</a>
-            </div>
+            <h1>Welcome to MAYUR K (MK)</h1>
+            <p>Browse and purchase high-quality PDF documents</p>
+            <p class="slogan">Your Success, Our Priority</p>
+            <a href="catalog.html" class="cta-button">View Catalog</a>
+            
         </section>
+        <div class="whatsapp-group">
+            <p>FOR LATEST UPDATE</p>
+            <a href="https://chat.whatsapp.com/GXARNEsQE3nIZrOjK4o699" 
+               class="whatsapp-button" 
+               target="_blank" 
+               rel="noopener noreferrer">
+                <i class="fab fa-whatsapp"></i> JOIN OUR GROUP
+            </a>
+        </div>
 
         <section class="features">
             <h2>Why Choose Us?</h2>
             <div class="feature-grid">
-                <div class="feature-card">
-                    <i class="fas fa-lock" style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                <article class="feature-card">
+                    <i class="fas fa-lock" aria-hidden="true"></i>
                     <h3>Secure Payments</h3>
                     <p>Safe and secure payment processing through Razorpay</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-download" style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                </article>
+                <article class="feature-card">
+                    <i class="fas fa-download" aria-hidden="true"></i>
                     <h3>Instant Access</h3>
                     <p>Download your purchased PDFs immediately after payment</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-star" style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                </article>
+                <article class="feature-card">
+                    <i class="fas fa-star" aria-hidden="true"></i>
                     <h3>Quality Content</h3>
                     <p>Curated collection of valuable PDF documents</p>
-                </div>
+                </article>
             </div>
         </section>
     </main>
 
     <footer>
-        <p>&copy; 2025 MICRO Store. All rights reserved.</p>
+        <p>© 2025 MAYUR K (MK). All rights reserved.</p>
     </footer>
 
-    <script src="js/loading.js"></script>
-    <script>
-        // Mobile menu toggle
-        document.querySelector('.mobile-nav-toggle').addEventListener('click', function() {
-            document.querySelector('nav ul').classList.toggle('active');
+    <!-- Moved all scripts to end of body for better page load performance -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="js/supabase.js" defer></script>
+    <script src="js/loading.js" defer></script>
+    <script defer>
+        const menuToggle = document.getElementById('menuToggle');
+        const navMenu = document.getElementById('navMenu');
+
+        menuToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            menuToggle.classList.toggle('active');
         });
 
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(event) {
-            const nav = document.querySelector('nav ul');
-            const toggle = document.querySelector('.mobile-nav-toggle');
-            if (!nav.contains(event.target) && !toggle.contains(event.target)) {
-                nav.classList.remove('active');
+        document.addEventListener('click', (e) => {
+            if (!navMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+                navMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
             }
         });
     </script>
 </body>
-</html> 
+</html>

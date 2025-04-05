@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalog - MICRO Store</title>
+    <title>Catalog - MAYUR K (MK)</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,7 +13,7 @@
 <body>
     <header>
         <nav>
-            <div class="logo"><a href="index.html">MICRO Store</a></div>
+            <div class="logo"><a href="index.html">MAYUR K (MK)</a></div>
             <div class="menu-toggle" id="menuToggle">
                 <span></span>
                 <span></span>
@@ -22,12 +22,13 @@
             <ul id="navMenu">
                 <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
                 <li><a href="catalog.html" class="active"><i class="fas fa-book"></i> Catalog</a></li>
-                <li><a href="admin/login.html"><i class="fas fa-user-shield"></i> Admin</a></li>
+                <li><a href="admin/login.html"><i class="fas fa-user-shield"></i> Admin Login</a></li>
             </ul>
         </nav>
     </header>
 
     <main>
+        
         <section class="catalog-container">
             <div class="catalog-header">
                 <h1>Study Materials Catalog</h1>
@@ -39,27 +40,7 @@
                     <input type="text" id="searchInput" placeholder="Search study materials...">
                     <i class="fas fa-search"></i>
                 </div>
-                <div class="filter-options">
-                    <select id="yearFilter">
-                        <option value="">All Years</option>
-                        <option value="FE">First Year (FE)</option>
-                        <option value="SE">Second Year (SE)</option>
-                        <option value="TE">Third Year (TE)</option>
-                        <option value="BE">Fourth Year (BE)</option>
-                    </select>
-                    <select id="branchFilter">
-                        <option value="">All Branches</option>
-                        <option value="Computer">Computer Engineering</option>
-                        <option value="IT">Information Technology</option>
-                    </select>
-                    <select id="subjectFilter">
-                        <option value="">All Subjects</option>
-                        <option value="CC">Cloud Computing</option>
-                        <option value="DSBDA">Data Science & Big Data Analytics</option>
-                        <option value="AI">Artificial Intelligence</option>
-                        <option value="WT">Web Technology</option>
-                    </select>
-                </div>
+                
             </div>
 
             <div class="catalog-grid" id="pdfGrid">
@@ -78,6 +59,16 @@
             </div>
         </section>
     </main>
+
+    <div class="whatsapp-corner">
+        <a href="https://chat.whatsapp.com/GXARNEsQE3nIZrOjK4o699" 
+           class="whatsapp-corner-button" 
+           target="_blank" 
+           rel="noopener noreferrer"
+           title="Join Our WhatsApp Group">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
 
     <footer>
         <p>&copy; 2025 MICRO Store. All rights reserved.</p>

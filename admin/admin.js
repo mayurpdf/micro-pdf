@@ -1,3 +1,28 @@
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAM5QfBShX7ckFCT15eBbmKnqir30IOKGQ",
+  authDomain: "mayurlogin-a6524.firebaseapp.com",
+  projectId: "mayurlogin-a6524",
+  storageBucket: "mayurlogin-a6524.firebasestorage.app",
+  messagingSenderId: "634470343591",
+  appId: "1:634470343591:web:88bba9b3c18594ad280c82",
+  measurementId: "G-975D6FBS79"
+};
+
+// Initialize Firebase
+let auth;
+try {
+  if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    console.log('Firebase initialized successfully');
+  } else {
+    console.error('Firebase SDK not loaded');
+  }
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+}
+
 // Show notification function
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
@@ -27,28 +52,46 @@ const ADMIN_CREDENTIALS = {
 
 // Check if user is already logged in
 function checkAuth() {
-    const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
-    if (isLoggedIn && window.location.pathname.includes('login.html')) {
-        window.location.href = 'dashboard.html';
-    } else if (!isLoggedIn && !window.location.pathname.includes('login.html')) {
-        window.location.href = 'login.html';
+    if (!auth) {
+        console.error('Firebase auth not initialized');
+        return;
     }
+    
+    auth.onAuthStateChanged((user) => {
+        if (user && window.location.pathname.includes('login.html')) {
+            window.location.href = 'dashboard.html';
+        } else if (!user && !window.location.pathname.includes('login.html')) {
+            window.location.href = 'login.html';
+        }
+    });
 }
 
 // Handle login form submission
-function handleLogin(event) {
+async function handleLogin(event) {
     event.preventDefault();
     
-    const username = document.getElementById('username').value;
+    if (!auth) {
+        console.error('Firebase auth not initialized');
+        showNotification('Authentication service not available. Please try again later.', 'error');
+        return false;
+    }
+    
+    const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('error-message');
     
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        sessionStorage.setItem('adminLoggedIn', 'true');
-        window.location.href = 'dashboard.html';
-    } else {
+    try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        if (user) {
+            sessionStorage.setItem('adminLoggedIn', 'true');
+            window.location.href = 'dashboard.html';
+        }
+    } catch (error) {
         errorMessage.style.display = 'block';
-        errorMessage.textContent = 'Invalid username or password';
+        errorMessage.textContent = 'Invalid email or password';
+        console.error('Login error:', error);
     }
     
     return false;
@@ -56,8 +99,20 @@ function handleLogin(event) {
 
 // Handle logout
 function handleLogout() {
-    sessionStorage.removeItem('adminLoggedIn');
-    window.location.href = 'login.html';
+    if (!auth) {
+        console.error('Firebase auth not initialized');
+        sessionStorage.removeItem('adminLoggedIn');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    auth.signOut().then(() => {
+        sessionStorage.removeItem('adminLoggedIn');
+        window.location.href = 'login.html';
+    }).catch((error) => {
+        console.error('Logout error:', error);
+        showNotification('Error during logout. Please try again.', 'error');
+    });
 }
 
 // Handle PDF upload

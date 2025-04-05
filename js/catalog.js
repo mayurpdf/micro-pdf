@@ -1,37 +1,198 @@
+// Add CSS for the modal
+const modalStyles = `
+<style>
+.user-details-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h3 {
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-group input:focus {
+    border-color: #3399cc;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(51, 153, 204, 0.2);
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.modal-button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.cancel-button {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.continue-button {
+    background-color: #3399cc;
+    color: white;
+}
+
+.continue-button:hover {
+    background-color: #2980b9;
+}
+
+.cancel-button:hover {
+    background-color: #e5e5e5;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: none;
+}
+</style>
+`;
+
+// Add modal HTML
+document.head.insertAdjacentHTML('beforeend', modalStyles);
+document.body.insertAdjacentHTML('beforeend', `
+<div class="user-details-modal" id="userDetailsModal">
+    <div class="modal-content">
+        <h3>Enter Contact Details</h3>
+        <form id="userDetailsForm">
+            <div class="form-group">
+                <label for="userName">Full Name</label>
+                <input type="text" id="userName" required placeholder="Enter your full name">
+                <div class="error-message" id="nameError">Please enter a valid name</div>
+            </div>
+            <div class="form-group">
+                <label for="userPhone">Mobile Number</label>
+                <input type="tel" id="userPhone" required placeholder="Enter your mobile number" value="+91">
+                <div class="error-message" id="phoneError">Please enter a valid 10-digit mobile number</div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-button cancel-button" onclick="closeUserDetailsModal()">Cancel</button>
+                <button type="submit" class="modal-button continue-button">Continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+`);
+
+// User details modal functions
+function showUserDetailsModal(callback) {
+    const modal = document.getElementById('userDetailsModal');
+    const form = document.getElementById('userDetailsForm');
+    const phoneInput = document.getElementById('userPhone');
+    const nameInput = document.getElementById('userName');
+
+    // Show the modal
+    modal.style.display = 'flex';
+
+    // Handle form submission
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        
+        // Validate phone number
+        const phoneNumber = phoneInput.value.trim();
+        const name = nameInput.value.trim();
+        
+        // Reset error messages
+        document.getElementById('phoneError').style.display = 'none';
+        document.getElementById('nameError').style.display = 'none';
+        
+        // Validate name
+        if (name.length < 3) {
+            document.getElementById('nameError').style.display = 'block';
+            return;
+        }
+
+        // Validate phone number
+        const phoneRegex = /^\+91[0-9]{10}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            document.getElementById('phoneError').style.display = 'block';
+            return;
+        }
+
+        // Close modal and proceed with payment
+        modal.style.display = 'none';
+        callback({
+            name: name,
+            phone: phoneNumber
+        });
+    };
+}
+
+function closeUserDetailsModal() {
+    const modal = document.getElementById('userDetailsModal');
+    modal.style.display = 'none';
+}
+
 // Initialize Razorpay
 const options = {
-    key: "rzp_live_gNzl95zcLTH5Jt", // Live mode API key
+    key: "rzp_live_gNzl95zcLTH5Jt",
     amount: 0,
     currency: "INR",
-    name: "MICRO Store",
+    name: "MK Store",
     description: "PDF Document Purchase",
-    handler: function (response) {
-        handlePaymentSuccess(response);
-    },
-    prefill: {
-        name: "Test User",
-        email: "test@example.com",
-        contact: "9999999999"
-    },
     theme: {
         color: "#3399cc"
     },
-    // Configure payment methods
-    method: {
-        upi: true,
-        card: true,
-        netbanking: false,
-        wallet: false,
-        emi: false,
-        cod: false,
-        paylater: false,
-        gpay: true,
-        phonepe: true
+    modal: {
+        confirm_close: true,
+        escape: false,
+        handleback: true,
+        ondismiss: function() {
+            hideLoading();
+        }
     },
-    // Configure UPI apps
-    upi: {
-        apps: ['google_pay', 'phonepe'],
-        flow: 'collect'
+    send_sms_hash: true,
+    remember_customer: true,
+    readonly: {
+        contact: false,
+        email: false
     }
 };
 
@@ -50,21 +211,39 @@ const levelFilter = document.getElementById('levelFilter');
 let allPdfs = [];
 let filteredPdfs = [];
 
+// Store transaction details
+let currentTransaction = null;
+
+// Loading state management
+function showLoading() {
+    const loadingPlaceholder = document.getElementById('loadingPlaceholder');
+    if (loadingPlaceholder) {
+        loadingPlaceholder.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    const loadingPlaceholder = document.getElementById('loadingPlaceholder');
+    if (loadingPlaceholder) {
+        loadingPlaceholder.style.display = 'none';
+    }
+}
+
 // Fetch PDFs from Supabase
 async function fetchPDFs() {
     try {
-        console.log('Fetching PDFs from Supabase...'); // Debug log
+        console.log('Fetching PDFs from Supabase...');
         const { data, error } = await supabase
             .from('pdfs')
             .select('*')
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Supabase error:', error); // Debug log
+            console.error('Supabase error:', error);
             throw error;
         }
         
-        console.log('Fetched PDFs:', data); // Debug log
+        console.log('Fetched PDFs:', data);
 
         // Get signed URLs for each PDF
         const pdfsWithUrls = await Promise.all(data.map(async (pdf) => {
@@ -85,7 +264,7 @@ async function fetchPDFs() {
             }
         }));
 
-        console.log('PDFs with URLs:', pdfsWithUrls); // Debug log
+        console.log('PDFs with URLs:', pdfsWithUrls);
         return pdfsWithUrls || [];
     } catch (error) {
         console.error('Error fetching PDFs:', error);
@@ -94,53 +273,36 @@ async function fetchPDFs() {
     }
 }
 
-// Render PDF cards
+// Render PDFs
 function renderPDFs(pdfs) {
-    console.log('Rendering PDFs:', pdfs); // Debug log
     const pdfGrid = document.getElementById('pdfGrid');
-    if (!pdfGrid) {
-        console.error('PDF grid element not found'); // Debug log
-        return;
-    }
-    
     pdfGrid.innerHTML = '';
 
-    if (!pdfs || pdfs.length === 0) {
-        console.log('No PDFs to render'); // Debug log
+    if (pdfs.length === 0) {
+        noResults.style.display = 'flex';
         return;
     }
+
+    noResults.style.display = 'none';
 
     pdfs.forEach(pdf => {
         const card = document.createElement('div');
         card.className = 'pdf-card';
         
-        // Format the title and description
-        const title = pdf.title || 'Untitled Document';
-        const description = pdf.description || 'No description available';
-        
-        // Format the meta information
-        const year = pdf.year || 'N.A';
-        const branch = pdf.branch || 'N.A';
-        const subject = pdf.subject || 'N.A';
-        
-        // Format the price
-        const price = pdf.price ? `₹${pdf.price}` : '₹49';
-
-        // Add download URL to the card data
-        card.dataset.downloadUrl = pdf.download_url || '';
+        // Create meta information only if values exist
+        const metaInfo = [];
+        if (pdf.year) metaInfo.push(`<span class="year"><i class="fas fa-calendar"></i> ${pdf.year}</span>`);
+        if (pdf.branch) metaInfo.push(`<span class="branch"><i class="fas fa-graduation-cap"></i> ${pdf.branch}</span>`);
+        if (pdf.subject) metaInfo.push(`<span class="subject"><i class="fas fa-book"></i> ${pdf.subject}</span>`);
 
         card.innerHTML = `
             <div class="pdf-info">
-                <h3>${title}</h3>
-                <div class="pdf-meta">
-                    <span class="year"><i class="fas fa-calendar"></i> ${year}</span>
-                    <span class="branch"><i class="fas fa-graduation-cap"></i> ${branch}</span>
-                    <span class="subject"><i class="fas fa-book"></i> ${subject}</span>
-                </div>
-                <p>${description}</p>
-                <div class="pdf-price">${price}</div>
+                <h3>${pdf.title}</h3>
+                ${metaInfo.length > 0 ? `<div class="pdf-meta">${metaInfo.join('')}</div>` : ''}
+                <p>${pdf.description}</p>
+                <div class="pdf-price">₹${pdf.price}</div>
             </div>
-            <button onclick="initiatePayment('${pdf.id}', ${pdf.price || 49})" class="buy-button">
+            <button onclick="handlePayment('${pdf.id}')" class="buy-button">
                 <i class="fas fa-shopping-cart"></i> Buy Now
             </button>
         `;
@@ -149,14 +311,11 @@ function renderPDFs(pdfs) {
 }
 
 // Filter PDFs based on search and filters
-function filterPDFs(pdfs) {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    const yearFilter = document.getElementById('yearFilter').value;
-    const branchFilter = document.getElementById('branchFilter').value;
-    const subjectFilter = document.getElementById('subjectFilter').value;
-
-    console.log('Current Filters:', { yearFilter, branchFilter, subjectFilter }); // Debug log
-
+function filterPDFs(pdfs, searchTerm = '') {
+    if (!pdfs) return [];
+    
+    searchTerm = searchTerm.toLowerCase().trim();
+    
     return pdfs.filter(pdf => {
         // Create a searchable string from all relevant fields
         const searchableText = [
@@ -164,37 +323,12 @@ function filterPDFs(pdfs) {
             pdf.description || '',
             pdf.year || '',
             pdf.branch || '',
-            pdf.subject || ''
+            pdf.subject || '',
+            pdf.price ? pdf.price.toString() : ''
         ].join(' ').toLowerCase();
 
         // Check if search term matches any part of the document
-        const matchesSearch = searchTerm === '' || searchableText.includes(searchTerm);
-        
-        // Apply filters with case-insensitive comparison and null checks
-        const matchesYear = !yearFilter || (pdf.year && pdf.year.toLowerCase() === yearFilter.toLowerCase());
-        const matchesBranch = !branchFilter || (pdf.branch && pdf.branch.toLowerCase() === branchFilter.toLowerCase());
-        const matchesSubject = !subjectFilter || (pdf.subject && pdf.subject.toLowerCase() === subjectFilter.toLowerCase());
-
-        // Debug log for each document
-        console.log('Document:', {
-            title: pdf.title,
-            year: pdf.year,
-            branch: pdf.branch,
-            subject: pdf.subject,
-            matches: {
-                search: matchesSearch,
-                year: matchesYear,
-                branch: matchesBranch,
-                subject: matchesSubject
-            }
-        });
-
-        // Only apply filters if they are selected
-        if (yearFilter === '' && branchFilter === '' && subjectFilter === '') {
-            return matchesSearch;
-        }
-
-        return matchesSearch && matchesYear && matchesBranch && matchesSubject;
+        return searchTerm === '' || searchableText.includes(searchTerm);
     });
 }
 
@@ -202,16 +336,18 @@ function filterPDFs(pdfs) {
 async function updateDisplay() {
     const loadingPlaceholder = document.getElementById('loadingPlaceholder');
     const noResults = document.getElementById('noResults');
+    const searchInput = document.getElementById('searchInput');
     
     try {
         loadingPlaceholder.style.display = 'flex';
         noResults.style.display = 'none';
         
         const pdfs = await fetchPDFs();
-        console.log('Total PDFs fetched:', pdfs.length); // Debug log
+        console.log('Total PDFs fetched:', pdfs.length);
         
-        const filteredPDFs = filterPDFs(pdfs);
-        console.log('PDFs after filtering:', filteredPDFs.length); // Debug log
+        const searchTerm = searchInput ? searchInput.value : '';
+        const filteredPDFs = filterPDFs(pdfs, searchTerm);
+        console.log('PDFs after filtering:', filteredPDFs.length);
         
         if (filteredPDFs.length === 0) {
             noResults.style.display = 'flex';
@@ -231,132 +367,196 @@ async function updateDisplay() {
 
 // Initialize filters with debounce for search input
 function initializeFilters() {
-    const filters = ['yearFilter', 'branchFilter', 'subjectFilter'];
-    filters.forEach(filterId => {
-        const element = document.getElementById(filterId);
-        if (element) {
-            element.addEventListener('change', () => {
-                console.log(`${filterId} changed to:`, element.value); // Debug log
-                updateDisplay();
-            });
-        }
-    });
-
-    // Add debounced search input listener
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         let searchTimeout;
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                console.log('Search term changed to:', searchInput.value); // Debug log
+                console.log('Search term changed to:', searchInput.value);
                 updateDisplay();
             }, 300);
         });
     }
 }
 
-// Initialize payment
-function initiatePayment(pdfId, amount) {
-    console.log('Initiating payment for PDF:', pdfId, 'Amount:', amount); // Debug log
-    
-    // Ensure amount is a valid number
-    const amountInPaise = Math.round(parseFloat(amount) * 100);
-    if (isNaN(amountInPaise) || amountInPaise <= 0) {
-        showNotification('Invalid amount specified', 'error');
-        return;
-    }
-    
-    options.amount = amountInPaise;
-    options.prefill = {
-        name: "Test User",
-        email: "test@example.com",
-        contact: "9999999999"
-    };
-    
-    // Add notes for tracking
-    options.notes = {
-        pdf_id: pdfId,
-        purpose: "Educational Material"
-    };
-
+// Initialize the page
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Page loaded, initializing...');
     try {
-        const rzp = new Razorpay(options);
-        rzp.open();
+        // Show loading state
+        if (loadingPlaceholder) {
+            loadingPlaceholder.style.display = 'flex';
+        }
+        if (noResults) {
+            noResults.style.display = 'none';
+        }
+
+        // Initialize filters
+        initializeFilters();
+
+        // Fetch and display PDFs
+        await updateDisplay();
     } catch (error) {
-        console.error('Error initiating payment:', error);
-        showNotification('Error initiating payment. Please try again.', 'error');
+        console.error('Error initializing page:', error);
+        showNotification('Error loading documents', 'error');
+        if (loadingPlaceholder) {
+            loadingPlaceholder.style.display = 'none';
+        }
     }
-}
+});
 
-// Handle successful payment
-async function handlePaymentSuccess(response) {
+// Handle payment initiation
+async function handlePayment(pdfId) {
     try {
-        console.log('Payment response:', response); // Debug log
-
-        // Get the PDF ID from the notes
-        const pdfId = options.notes.pdf_id;
-        const amount = options.amount / 100; // Convert back to rupees
-
-        const purchaseData = {
-            payment_id: response.razorpay_payment_id,
-            pdf_id: pdfId,
-            amount: amount,
-            status: 'completed',
-            created_at: new Date().toISOString()
-        };
-
-        console.log('Recording purchase with data:', purchaseData); // Debug log
-
-        // First, get the PDF details
-        const { data: pdfData, error: pdfError } = await supabase
+        showLoading();
+        const { data: pdf, error } = await supabase
             .from('pdfs')
             .select('*')
             .eq('id', pdfId)
             .single();
 
-        if (pdfError) {
-            throw new Error('Failed to fetch PDF details: ' + pdfError.message);
-        }
+        if (error) throw error;
 
-        if (!pdfData) {
-            throw new Error('PDF not found');
-        }
+        // Show user details modal first
+        showUserDetailsModal(async (userDetails) => {
+            try {
+                // Store transaction details
+                currentTransaction = {
+                    pdfId: pdfId,
+                    amount: pdf.price,
+                    customerName: userDetails.name,
+                    customerPhone: userDetails.phone,
+                    pdfTitle: pdf.title
+                };
 
-        // Get signed URL for the PDF
-        const { data: urlData, error: urlError } = await supabase.storage
-            .from('pdfs')
-            .createSignedUrl(pdfData.filename, 60); // URL valid for 60 seconds
+                // Update Razorpay options with PDF and user details
+                const paymentOptions = {
+                    ...options,
+                    amount: pdf.price * 100,
+                    description: pdf.title,
+                    prefill: {
+                        name: userDetails.name,
+                        contact: userDetails.phone,
+                        method: 'contact'
+                    },
+                    notes: {
+                        pdf_id: pdfId,
+                        purpose: "Educational Material",
+                        customer_name: userDetails.name,
+                        customer_phone: userDetails.phone
+                    },
+                    handler: function(response) {
+                        if (response.razorpay_payment_id) {
+                            handlePaymentSuccess(response, currentTransaction);
+                        }
+                    }
+                };
 
-        if (urlError) {
-            throw new Error('Failed to generate download URL: ' + urlError.message);
-        }
+                const rzp = new Razorpay(paymentOptions);
+                
+                // Add payment handlers
+                rzp.on('payment.failed', function(response) {
+                    console.error('Payment failed:', response.error);
+                    hideLoading();
+                    showNotification('Payment failed. Please try again.', 'error');
+                });
 
-        // Record the purchase
-        const { data, error } = await supabase
-            .from('purchases')
-            .insert([purchaseData]);
+                rzp.on('payment.success', function(response) {
+                    console.log('Payment successful:', response);
+                    showNotification('Payment successful! Processing your order...', 'success');
+                });
 
-        if (error) {
-            console.error('Supabase error:', error); // Debug log
-            // Continue with download even if purchase recording fails
-            console.warn('Failed to record purchase, but continuing with download');
-        }
-
-        console.log('Purchase recorded successfully:', data); // Debug log
-        showNotification('Payment successful! Downloading your PDF...', 'success');
-        
-        // Create a temporary link and trigger download
-        const link = document.createElement('a');
-        link.href = urlData.signedUrl;
-        link.download = pdfData.title + '.pdf';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+                rzp.open();
+            } catch (error) {
+                console.error('Error opening Razorpay:', error);
+                showNotification('Error initiating payment. Please try again.', 'error');
+                hideLoading();
+            }
+        });
     } catch (error) {
-        console.error('Error in handlePaymentSuccess:', error); // Debug log
-        showNotification('Error processing payment: ' + error.message, 'error');
+        console.error('Payment error:', error);
+        showNotification('Payment failed. Please try again.', 'error');
+        hideLoading();
+    }
+}
+
+// Handle successful payment
+async function handlePaymentSuccess(response, transaction) {
+    try {
+        console.log('Payment response:', response);
+        showLoading();
+
+        if (!response.razorpay_payment_id) {
+            throw new Error('No payment ID received');
+        }
+
+        if (!transaction) {
+            throw new Error('Transaction details not found');
+        }
+
+        // Create purchase record
+        const purchaseData = {
+            payment_id: response.razorpay_payment_id,
+            pdf_id: transaction.pdfId,
+            amount: transaction.amount,
+            status: 'completed',
+            customer_name: transaction.customerName,
+            customer_phone: transaction.customerPhone,
+            created_at: new Date().toISOString()
+        };
+
+        try {
+            // Record the purchase in database
+            const { error: purchaseError } = await supabase
+                .from('purchases')
+                .insert([purchaseData]);
+
+            if (purchaseError) {
+                console.error('Error recording purchase:', purchaseError);
+                console.warn('Failed to record purchase, but continuing with download');
+            }
+
+            // Get PDF details and generate download URL
+            const { data: pdfData, error: pdfError } = await supabase
+                .from('pdfs')
+                .select('*')
+                .eq('id', transaction.pdfId)
+                .single();
+
+            if (pdfError || !pdfData) {
+                throw new Error('Could not find PDF details');
+            }
+
+            const { data: urlData, error: urlError } = await supabase.storage
+                .from('pdfs')
+                .createSignedUrl(pdfData.filename, 300);
+
+            if (urlError) {
+                throw new Error('Could not generate download link');
+            }
+
+            // Trigger download
+            const link = document.createElement('a');
+            link.href = urlData.signedUrl;
+            link.download = transaction.pdfTitle + '.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showNotification('Payment successful! Your PDF is downloading...', 'success');
+            
+            // Clear transaction data
+            currentTransaction = null;
+        } catch (error) {
+            console.error('Error processing successful payment:', error);
+            showNotification('Error downloading PDF. Please contact support.', 'error');
+        }
+    } catch (error) {
+        console.error('Payment verification error:', error);
+        showNotification('Error processing payment. Please contact support.', 'error');
+    } finally {
+        hideLoading();
     }
 }
 
@@ -384,44 +584,31 @@ function showNotification(message, type) {
     }, 3000);
 }
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Page loaded, initializing...'); // Debug log
-    try {
-        // Show loading state
-        if (loadingPlaceholder) {
-            loadingPlaceholder.style.display = 'flex';
-        }
-        if (noResults) {
-            noResults.style.display = 'none';
-        }
-
-        // Fetch and display PDFs
-        const pdfs = await fetchPDFs();
-        console.log('PDFs fetched:', pdfs); // Debug log
-
-        if (pdfs && pdfs.length > 0) {
-            renderPDFs(pdfs);
-            if (loadingPlaceholder) {
-                loadingPlaceholder.style.display = 'none';
-            }
-        } else {
-            console.log('No PDFs found'); // Debug log
-            if (noResults) {
-                noResults.style.display = 'flex';
-            }
-            if (loadingPlaceholder) {
-                loadingPlaceholder.style.display = 'none';
-            }
-        }
-
-        // Initialize filters
-        initializeFilters();
-    } catch (error) {
-        console.error('Error initializing page:', error);
-        showNotification('Error loading documents', 'error');
-        if (loadingPlaceholder) {
-            loadingPlaceholder.style.display = 'none';
-        }
-    }
+// Search functionality
+searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const filteredPDFs = pdfs.filter(pdf => {
+        // Search in title
+        const titleMatch = pdf.title.toLowerCase().includes(searchTerm);
+        
+        // Search in description
+        const descriptionMatch = pdf.description.toLowerCase().includes(searchTerm);
+        
+        // Search in year
+        const yearMatch = pdf.year && pdf.year.toLowerCase().includes(searchTerm);
+        
+        // Search in branch
+        const branchMatch = pdf.branch && pdf.branch.toLowerCase().includes(searchTerm);
+        
+        // Search in subject
+        const subjectMatch = pdf.subject && pdf.subject.toLowerCase().includes(searchTerm);
+        
+        // Search in price
+        const priceMatch = pdf.price.toString().includes(searchTerm);
+        
+        // Return true if any of the fields match
+        return titleMatch || descriptionMatch || yearMatch || branchMatch || subjectMatch || priceMatch;
+    });
+    
+    renderPDFs(filteredPDFs);
 }); 

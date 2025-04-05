@@ -18,13 +18,13 @@ function createLoadingScreen() {
     
     document.body.appendChild(loadingScreen);
     
-    // Remove loading screen after 3 seconds
+    // Remove loading screen after 1.5 seconds
     setTimeout(() => {
         loadingScreen.classList.add('fade-out');
         setTimeout(() => {
             loadingScreen.remove();
         }, 500);
-    }, 3000);
+    }, 1500);
 }
 
 // Initialize loading screen when DOM is loaded
