@@ -193,11 +193,7 @@ const options = {
     readonly: {
         contact: false,
         email: false
-    },
-    payment_capture: 1,
-    automatic_capture: true,
-    capture: true,
-    order_id: null
+    }
 };
 
 // Initialize Supabase client
@@ -434,34 +430,11 @@ async function handlePayment(pdfId) {
                     pdfTitle: pdf.title
                 };
 
-                // Create an order first
-                const orderResponse = await fetch('https://api.razorpay.com/v1/orders', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Basic ' + btoa('rzp_live_gNzl95zcLTH5Jt:YOUR_RAZORPAY_SECRET_KEY')
-                    },
-                    body: JSON.stringify({
-                        amount: pdf.price * 100, // Amount in paise
-                        currency: 'INR',
-                        receipt: 'receipt_' + Date.now(),
-                        payment_capture: 1
-                    })
-                });
-
-                if (!orderResponse.ok) {
-                    throw new Error('Failed to create order');
-                }
-
-                const orderData = await orderResponse.json();
-                console.log('Order created:', orderData);
-
                 // Update Razorpay options with PDF and user details
                 const paymentOptions = {
                     ...options,
-                    amount: pdf.price * 100, // Amount in paise
+                    amount: pdf.price * 100,
                     description: pdf.title,
-                    order_id: orderData.id, // Set the order ID
                     prefill: {
                         name: userDetails.name,
                         contact: userDetails.phone,
@@ -475,18 +448,7 @@ async function handlePayment(pdfId) {
                     },
                     handler: function(response) {
                         if (response.razorpay_payment_id) {
-                            // Capture the payment
-                            capturePayment(response.razorpay_payment_id, pdf.price * 100)
-                                .then(() => {
-                                    handlePaymentSuccess(response, currentTransaction);
-                                })
-                                .catch(error => {
-                                    console.error('Payment capture error:', error);
-                                    showNotification('Error capturing payment. Please contact support.', 'error');
-                                    hideLoading();
-                                });
-                        } else {
-                            throw new Error('Payment ID not received');
+                            handlePaymentSuccess(response, currentTransaction);
                         }
                     }
                 };
@@ -516,35 +478,6 @@ async function handlePayment(pdfId) {
         console.error('Payment error:', error);
         showNotification('Payment failed. Please try again.', 'error');
         hideLoading();
-    }
-}
-
-// Function to capture payment
-async function capturePayment(paymentId, amount) {
-    try {
-        const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/capture`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + btoa('rzp_live_gNzl95zcLTH5Jt:YOUR_RAZORPAY_SECRET_KEY')
-            },
-            body: JSON.stringify({
-                amount: amount,
-                currency: 'INR'
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error.description || 'Failed to capture payment');
-        }
-
-        const captureData = await response.json();
-        console.log('Payment captured:', captureData);
-        return captureData;
-    } catch (error) {
-        console.error('Error capturing payment:', error);
-        throw error;
     }
 }
 
